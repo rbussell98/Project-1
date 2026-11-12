@@ -11,3 +11,5 @@ blob-report
 .DS_Store
 eval/jj-fastpath-result.json
 playwright/.auth
+shots/
+test-results/

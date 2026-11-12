@@ -154,21 +154,28 @@ function stretchGray(src: OffscreenCanvas): OffscreenCanvas {
 }
 
 async function decodeBarcode(canvas: OffscreenCanvas): Promise<string | null> {
-  await prepareZxing();
-  const wide = resizeWidth(canvas, Math.max(canvas.width, 1600));
-  const variants = [canvas, stretchGray(canvas), stretchGray(wide)];
-  for (const v of variants) {
-    const img = canvasPixels(v);
-    const res = await readBarcodes(img, {
-      formats: ['EAN-13', 'UPC-A', 'UPC-E', 'EAN-8'],
-      tryHarder: true,
-      tryRotate: true,
-      tryInvert: true,
-      maxNumberOfSymbols: 2,
-    });
-    for (const r of res) if (r.isValid && /^\d{8,14}$/.test(r.text)) return r.text;
-  }
-  return null;
+  // Barcode hits only matter when the visual fast path does not accept.
+  // ZXing with tryRotate on a full photo can stall the worker, so scan a
+  // smaller copy and give up if it has not answered.
+  const scan = resizeWidth(canvas, Math.min(canvas.width, 900));
+  const work = (async () => {
+    await prepareZxing();
+    const variants = [scan, stretchGray(scan)];
+    for (const v of variants) {
+      const img = canvasPixels(v);
+      const res = await readBarcodes(img, {
+        formats: ['EAN-13', 'UPC-A', 'UPC-E', 'EAN-8'],
+        tryHarder: true,
+        tryRotate: true,
+        tryInvert: true,
+        maxNumberOfSymbols: 2,
+      });
+      for (const r of res) if (r.isValid && /^\d{8,14}$/.test(r.text)) return r.text;
+    }
+    return null;
+  })();
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
+  return Promise.race([work, timeout]);
 }
 
 interface OcrJob {
@@ -353,19 +360,7 @@ async function identify(id: string, buf: ArrayBuffer, users: EmbRow[], gen: numb
     cover = await cropCover(cv, photo, 1024, 640);
   } catch (err) {
     cover = null;
-    if (!cv) {
-      /* detection is optional; the whole photo still matches */
-      console.warn(err);
-    }
-  }
-  abort();
-  let barcode: string | null = null;
-  const bcCands: MbCand[] = [];
-  try {
-    barcode = await decodeBarcode(photo);
-    if (barcode) for (const c of await releaseGroupsForBarcode(barcode)) bcCands.push({ ...c, mbScore: 100 });
-  } catch (err) {
-    console.warn(err);
+    if (!cv) console.warn(err);
   }
   mark('crop');
   abort();
@@ -421,13 +416,23 @@ async function identify(id: string, buf: ArrayBuffer, users: EmbRow[], gen: numb
         phrases: [],
         ranked,
         timing: t,
-        barcode,
+        barcode: null,
         mbQueries: 0,
       };
       post({ type: 'result', id, result });
       return;
     }
   }
+
+  let barcode: string | null = null;
+  const bcCands: MbCand[] = [];
+  try {
+    barcode = await decodeBarcode(photo);
+    if (barcode) for (const c of await releaseGroupsForBarcode(barcode)) bcCands.push({ ...c, mbScore: 100 });
+  } catch (err) {
+    console.warn(err);
+  }
+  abort();
 
   status('Reading text');
   let phrases: { text: string; score: number }[] = [];
