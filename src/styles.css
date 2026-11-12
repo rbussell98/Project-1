@@ -276,6 +276,16 @@ img { max-width: 100%; }
   text-align: right;
   max-width: 58%;
 }
+.group .row.notes {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+.group .row.notes .hint {
+  margin-left: 0;
+  max-width: none;
+  text-align: left;
+}
 .group h3 {
   margin: 0;
   padding: 14px 16px 0;
@@ -314,6 +324,7 @@ img { max-width: 100%; }
 .btn.danger { color: var(--burnt); }
 .btn-row { display: flex; flex-direction: column; gap: 8px; margin: 16px; }
 
+body.sheet-open .tabbar { visibility: hidden; }
 .tabbar {
   position: fixed;
   left: 0; right: 0; bottom: 0;
@@ -393,7 +404,7 @@ img { max-width: 100%; }
   flex: none;
 }
 .sheet-bar .btn { justify-self: start; padding-left: 16px; }
-.sheet-scroll { overflow: auto; padding: 4px 0 24px; min-height: 0; }
+.sheet-scroll { overflow: auto; padding: 4px 0 calc(88px + var(--safe-b)); min-height: 0; }
 .sheet-title {
   font-family: var(--serif);
   font-weight: 560;

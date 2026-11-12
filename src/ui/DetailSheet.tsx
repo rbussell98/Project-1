@@ -91,7 +91,7 @@ export function DetailSheet({
               <span className="label">Format</span>
               <span className="hint">{record.format || '—'}</span>
             </div>
-            <div className="row">
+            <div className="row notes">
               <span className="label">Notes</span>
               <span className="hint">{record.notes || '—'}</span>
             </div>

@@ -139,6 +139,8 @@ test('iPhone screens of the shelf', async ({ page }) => {
   await expect(page.getByTestId('confirm-sheet')).toBeVisible({ timeout: 180_000 });
   await expect(page.getByTestId('confirm-title')).toContainText(/Moonlight/i);
   await expect(page.getByTestId('confirm-sheet')).toContainText('Jack Johnson');
+  await expect(page.getByText('2022')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.pick img')).toHaveCount(3, { timeout: 15_000 });
   expect(await recordCount(page)).toBe(4);
   await page.screenshot({ path: path.join(shots, '05-confirm.png') });
 
