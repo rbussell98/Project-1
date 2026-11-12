@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import { loadEmbedder, embedMany, dot } from '../src/embed.mjs';
+const t0 = Date.now();
+await loadEmbedder();
+console.log('load ms', Date.now() - t0);
+const a = fs.readFileSync('eval/src_covers/3d88aa7d-fb1c-433f-9df6-e3d294671304.jpg');
+const b = fs.readFileSync('eval/real/jj_moonlight_screenshot.jpg');
+const c = fs.readFileSync('/workspace/sleeve-review/jj-cover.jpg');
+const t1 = Date.now();
+const [ea, eb, ec] = await embedMany([a, b, c]);
+console.log('3 embeds ms', Date.now() - t1, ea.length);
+console.log('moon-src vs moon-screenshot', dot(ea, eb).toFixed(3), ' moon vs IBD', dot(ea, ec).toFixed(3));
