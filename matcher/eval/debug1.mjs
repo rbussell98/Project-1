@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import { createMatcher } from '../src/pipeline.mjs';
+const [rgid, level] = process.argv.slice(2);
+const m = await createMatcher({ ocrCacheDir: 'cache/ocr', ocrWorkers: 1 });
+const r = await m.identify(`eval/photos/${rgid}_${level}.jpg`, { log: (...a) => console.log(...a) });
+console.log(r.phrases.map(p=>p.text), r.nCandidates, r.nWithArt, r.timing);
+const ds = JSON.parse(fs.readFileSync('eval/dataset.json'));
+console.log('truth:', ds.find(d=>d.rgid===rgid).title);
+r.ranked.forEach((x,i)=>console.log(i+1, x.sim.toFixed(3), x.rgid===rgid?'<== TRUTH':'', x.artist, '-', x.title, x.src));
+await m.close();
