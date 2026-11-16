@@ -1,0 +1,79 @@
+{
+  "source": "Ryan Bussell's iPhone photos of his own records, downscaled to 1600px with EXIF and GPS removed. He owns the photos. They belong in eval/real/ryan/ next to this file.",
+  "verified": "2026-11-16 MusicBrainz release-group search, then the Cover Art Archive front image was compared with each photo. Photo 05 has no artist name on the jacket. The only MusicBrainz release group titled Darling Blue is The Marcus King Band, dated 2025-09-26. Zach Bryan's album list does not include it. The CAA front is the same curtain artwork as the photo, which also carries a Parental Advisory sticker the digital front does not.",
+  "shippedIndexOn68d6820": {
+    "note": "Four of the five release groups are absent from public/index/big-meta.json (9612 rows). Harry Styles is present. An earlier note said three were missing; the index check finds four.",
+    "present": ["8676b232-108c-4229-be09-f1b09b0ec5f6"],
+    "missing": [
+      "7b2b6b9b-5469-4953-8206-4f2af64db840",
+      "745f596d-f75a-3c8e-9ff1-7367019a1611",
+      "f8d90c4a-34b9-4d3f-a88b-cf91d5ea8acc",
+      "64a723c5-63a2-4e8b-ab74-1dc10802b9b3"
+    ]
+  },
+  "photos": [
+    {
+      "id": "01",
+      "file": "01-greta-van-fleet-battle-at-gardens-gate.jpg",
+      "artist": "Greta Van Fleet",
+      "title": "The Battle at Garden's Gate",
+      "rgid": "7b2b6b9b-5469-4953-8206-4f2af64db840",
+      "mbUrl": "https://musicbrainz.org/release-group/7b2b6b9b-5469-4953-8206-4f2af64db840",
+      "primaryType": "Album",
+      "firstReleaseDate": "2021-04-16",
+      "inShippedIndex": false,
+      "notes": "Sealed, shrink-wrap glare, photographer reflected in the jacket. MusicBrainz title uses a curly apostrophe."
+    },
+    {
+      "id": "02",
+      "file": "02-kiss-all-the-time-disco-occasionally.jpg",
+      "artist": "Harry Styles",
+      "title": "Kiss All the Time. Disco, Occasionally.",
+      "rgid": "8676b232-108c-4229-be09-f1b09b0ec5f6",
+      "mbUrl": "https://musicbrainz.org/release-group/8676b232-108c-4229-be09-f1b09b0ec5f6",
+      "primaryType": "Album",
+      "label": "Columbia",
+      "firstReleaseDate": "2026-03-06",
+      "inShippedIndex": true,
+      "notes": "Little readable type. Columbia logo. Greta Van Fleet shows along the top edge."
+    },
+    {
+      "id": "03",
+      "file": "03-grateful-dead-skeletons-from-the-closet.jpg",
+      "artist": "Grateful Dead",
+      "title": "Skeletons From the Closet: The Best of the Grateful Dead",
+      "rgid": "745f596d-f75a-3c8e-9ff1-7367019a1611",
+      "mbUrl": "https://musicbrainz.org/release-group/745f596d-f75a-3c8e-9ff1-7367019a1611",
+      "primaryType": "Album",
+      "secondaryTypes": ["Compilation"],
+      "firstReleaseDate": "1974",
+      "inShippedIndex": false,
+      "notes": "Clear outer sleeve. Harry Styles shows along the top edge."
+    },
+    {
+      "id": "04",
+      "file": "04-khruangbin-leon-bridges-texas-moon.jpg",
+      "artist": "Khruangbin & Leon Bridges",
+      "title": "Texas Moon",
+      "rgid": "f8d90c4a-34b9-4d3f-a88b-cf91d5ea8acc",
+      "mbUrl": "https://musicbrainz.org/release-group/f8d90c4a-34b9-4d3f-a88b-cf91d5ea8acc",
+      "primaryType": "EP",
+      "firstReleaseDate": "2022-02-18",
+      "inShippedIndex": false,
+      "notes": "Grateful Dead shows along the top edge."
+    },
+    {
+      "id": "05",
+      "file": "05-darling-blue.jpg",
+      "artist": "The Marcus King Band",
+      "title": "Darling Blue",
+      "rgid": "64a723c5-63a2-4e8b-ab74-1dc10802b9b3",
+      "mbUrl": "https://musicbrainz.org/release-group/64a723c5-63a2-4e8b-ab74-1dc10802b9b3",
+      "primaryType": "Album",
+      "year": 2025,
+      "inShippedIndex": false,
+      "not": "Queried 2026-11-16: release:\"Darling Blue\" returned count 1, this release group only. artist:\"Zach Bryan\" AND release:\"Darling Blue\" returned count 0.",
+      "notes": "Title and a Parental Advisory sticker. No artist name on the front. A sliver of another sleeve is at the top and is not identifiable."
+    }
+  ]
+}
