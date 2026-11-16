@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { deleteRecord, listRecords, newId, putRecord, subscribe } from './db';
-import { cancelIdentify, identify, rememberCover } from './matcher/client';
+import { cancelIdentify, identify, rememberCover, subscribeModel, warmupModel, type ModelSnapshot } from './matcher/client';
 import { fetchCover, searchByName } from './matcher/manual';
 import { applyTheme, loadPrefs, savePrefs } from './prefs';
 import { filterRecords, sortRecords } from './query';
 import type { Draft, DraftCandidate, IdentifyResult, Shelf, SleeveRecord, TabId } from './types';
 import { AddPage } from './ui/AddPage';
+import { ModelPill } from './ui/ModelPill';
 import { TabBar } from './ui/chrome';
 import { ConfirmSheet } from './ui/ConfirmSheet';
 import { DeleteSheet, DetailSheet } from './ui/DetailSheet';
@@ -62,7 +63,23 @@ export function App() {
   const [researching, setResearching] = useState(false);
   const [toast, setToast] = useState('');
   const [photo, setPhoto] = useState<{ file: File; preview: string; step: string; progress: number | null; error: string | null } | null>(null);
+  const [model, setModel] = useState<ModelSnapshot>({ phase: 'idle', progress: 0, loaded: 0, total: 0 });
   const job = useRef(0);
+
+  useEffect(() => {
+    return subscribeModel(setModel);
+  }, []);
+
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => warmupModel(), 50);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     applyTheme(prefs.theme);
@@ -209,7 +226,7 @@ export function App() {
   const doomed = records.find((r) => r.id === deleteId) || null;
 
   return (
-    <div className="app">
+    <div className="app" data-model={model.phase} data-model-bytes={model.total || undefined}>
       {tab === 'collection' || tab === 'wishlist' ? (
         <LibraryPage
           title={tab === 'wishlist' ? 'Wishlist' : 'Collection'}
@@ -235,7 +252,7 @@ export function App() {
           }}
         />
       ) : null}
-      {tab === 'add' && <AddPage onFile={startPhoto} onManual={() => setManual(true)} />}
+      {tab === 'add' && <AddPage onFile={startPhoto} onManual={() => setManual(true)} modelReady={model.phase === 'ready'} />}
       {tab === 'settings' && <SettingsPage theme={prefs.theme} onTheme={(theme) => updatePrefs({ theme })} />}
       <TabBar tab={tab} onChange={go} />
 
@@ -319,6 +336,7 @@ export function App() {
           }}
         />
       )}
+      <ModelPill state={model} />
       {toast ? <div className="toast">{toast}</div> : null}
     </div>
   );

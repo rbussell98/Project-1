@@ -581,6 +581,36 @@ body.sheet-open .tabbar { visibility: hidden; }
 }
 .check { color: var(--amber); font-weight: 700; }
 
+.model-pill {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: calc(68px + var(--safe-b));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 92%, black);
+  border: 0.5px solid var(--line);
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.model-pill .model-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(227, 154, 59, 0.2);
+}
+.model-pill.err { color: var(--burnt); }
+.model-pill.ready .model-dot, .model-pill.ready { color: var(--text); }
+
 .toast {
   position: fixed;
   left: 50%;

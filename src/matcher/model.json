@@ -1,0 +1,6 @@
+{
+  "id": "Xenova/clip-vit-base-patch32",
+  "dtype": "q8",
+  "dim": 512,
+  "imageSize": 224
+}

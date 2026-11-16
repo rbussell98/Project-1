@@ -130,6 +130,7 @@ test('iPhone screens of the shelf', async ({ page }) => {
   await page.screenshot({ path: path.join(shots, '03-wishlist.png') });
 
   await page.getByTestId('tab-add').click();
+  await expect(page.locator('.app')).toHaveAttribute('data-model', 'ready', { timeout: 180_000 });
   const before = await recordCount(page);
   expect(before).toBe(4);
   await page.getByTestId('library-input').setInputFiles(path.resolve('eval/real/jj_moonlight_screenshot.jpg'));

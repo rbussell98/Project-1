@@ -1,16 +1,20 @@
 import sharp from 'sharp';
 import { AutoProcessor, CLIPVisionModelWithProjection, RawImage, env } from '@huggingface/transformers';
+import spec from '../../src/matcher/model.json' with { type: 'json' };
+
 env.cacheDir = process.env.SLEEVE_MODEL_CACHE || new URL('../../.cache/clip/', import.meta.url).pathname;
 let model, proc;
-export const MODEL_ID = process.env.SLEEVE_CLIP || 'Xenova/clip-vit-base-patch32';
-export async function loadEmbedder(dtype = 'q8') {
+export const MODEL_ID = process.env.SLEEVE_CLIP || spec.id;
+export const MODEL_DTYPE = process.env.SLEEVE_DTYPE || spec.dtype;
+export const IMAGE_SIZE = Number(process.env.SLEEVE_IMAGE_SIZE || spec.imageSize);
+export async function loadEmbedder(dtype = MODEL_DTYPE) {
   if (model) return;
   model = await CLIPVisionModelWithProjection.from_pretrained(MODEL_ID, { dtype });
   proc = await AutoProcessor.from_pretrained(MODEL_ID);
 }
-// square-squash (no centre crop: covers are square; photos cropped to cover) -> 224x224 RGB
+// Square-squash to the model's image size. No centre crop: a sleeve should fill the frame.
 export async function toRaw224(buf) {
-  const { data, info } = await sharp(buf).rotate().removeAlpha().resize(224, 224, { fit: 'fill', kernel: 'lanczos3' }).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(buf).rotate().removeAlpha().resize(IMAGE_SIZE, IMAGE_SIZE, { fit: 'fill', kernel: 'lanczos3' }).raw().toBuffer({ resolveWithObject: true });
   return new RawImage(new Uint8ClampedArray(data), info.width, info.height, 3);
 }
 function norm(v) { let s = 0; for (const x of v) s += x * x; s = Math.sqrt(s) || 1; const o = new Float32Array(v.length); for (let i = 0; i < v.length; i++) o[i] = v[i] / s; return o; }

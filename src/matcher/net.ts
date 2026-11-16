@@ -2,12 +2,17 @@ import { artGet, artSet, cacheGet, cacheSet } from '../db';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function devProxy(name: string): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${base}/${name}`;
+}
+
 export function mbBase(): string {
-  return import.meta.env.DEV ? '/mb' : 'https://musicbrainz.org';
+  return import.meta.env.DEV ? devProxy('mb') : 'https://musicbrainz.org';
 }
 
 export function caaBase(): string {
-  return import.meta.env.DEV ? '/caa' : 'https://coverartarchive.org';
+  return import.meta.env.DEV ? devProxy('caa') : 'https://coverartarchive.org';
 }
 
 let lastMb = 0;

@@ -1,11 +1,20 @@
 import { Screen } from './chrome';
 import { IconCamera, IconSearch } from './icons';
 
-export function AddPage({ onFile, onManual }: { onFile: (file: File) => void; onManual: () => void }) {
+export function AddPage({
+  onFile,
+  onManual,
+  modelReady,
+}: {
+  onFile: (file: File) => void;
+  onManual: () => void;
+  modelReady: boolean;
+}) {
   return (
     <Screen title="Add">
       <p className="fine" style={{ marginTop: 0 }}>
         A photo of the sleeve is enough to start.
+        {modelReady ? '' : ' Printed text and the barcode work while the image model catches up.'}
       </p>
       <div className="group">
         <label className="row">
