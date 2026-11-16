@@ -21,11 +21,18 @@ import { textScore } from './textmatch';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+
+/** Files in `public/`, prefixed with Vite's base (`/` or `/Project-1/`). */
+function publicUrl(path: string): string {
+  const relative = path.replace(/^\/+/, '');
+  return new URL(`${import.meta.env.BASE_URL}${relative}`, location.origin).href;
+}
+
 const wasm = env.backends.onnx.wasm;
 if (wasm) {
   wasm.wasmPaths = {
-    mjs: new URL('/ort/ort-wasm-simd-threaded.mjs', location.origin).href,
-    wasm: new URL('/ort/ort-wasm-simd-threaded.wasm', location.origin).href,
+    mjs: publicUrl('/ort/ort-wasm-simd-threaded.mjs'),
+    wasm: publicUrl('/ort/ort-wasm-simd-threaded.wasm'),
   };
   wasm.numThreads = 1;
 }
@@ -46,7 +53,7 @@ let cvPromise: Promise<CvLike> | null = null;
 function loadCv(): Promise<CvLike> {
   if (!cvPromise) {
     cvPromise = (async () => {
-      const res = await fetch('/opencv/opencv.js');
+      const res = await fetch(publicUrl('/opencv/opencv.js'));
       if (!res.ok) throw new Error('Cover detection failed to load');
       const text = await res.text();
       (0, eval)(text);
@@ -119,7 +126,7 @@ let zxingReady: Promise<unknown> | null = null;
 function prepareZxing() {
   if (!zxingReady) {
     zxingReady = prepareZXingModule({
-      overrides: { locateFile: (file: string) => new URL('/zxing/' + file, location.origin).href },
+      overrides: { locateFile: (file: string) => publicUrl('/zxing/' + file) },
       fireImmediately: true,
     });
   }
@@ -194,9 +201,9 @@ async function makeOcr(n = 2): Promise<OcrRunner> {
   for (let i = 0; i < n; i++) {
     workers.push(
       await createWorker('eng', 1, {
-        workerPath: new URL('/tesseract/worker.min.js', location.origin).href,
-        corePath: new URL('/tesseract/tesseract-core-simd-lstm.wasm.js', location.origin).href,
-        langPath: new URL('/tesseract', location.origin).href,
+        workerPath: publicUrl('/tesseract/worker.min.js'),
+        corePath: publicUrl('/tesseract/tesseract-core-simd-lstm.wasm.js'),
+        langPath: publicUrl('/tesseract'),
         workerBlobURL: false,
         gzip: true,
         logger: () => {},
@@ -270,7 +277,10 @@ let indexPromise: Promise<PopularIndex> | null = null;
 function loadIndex(): Promise<PopularIndex> {
   if (!indexPromise) {
     indexPromise = (async () => {
-      const [metaRes, binRes] = await Promise.all([fetch('/index/big-meta.json'), fetch('/index/big-int8.bin')]);
+      const [metaRes, binRes] = await Promise.all([
+        fetch(publicUrl('/index/big-meta.json')),
+        fetch(publicUrl('/index/big-int8.bin')),
+      ]);
       if (!metaRes.ok || !binRes.ok) throw new Error('The album index is missing');
       const meta = (await metaRes.json()) as [string, string, string][];
       return openIndex(meta, await binRes.arrayBuffer());
