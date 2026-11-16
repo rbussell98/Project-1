@@ -45,8 +45,8 @@ export default defineConfig({
         name: 'Sleeve',
         short_name: 'Sleeve',
         description: 'A quiet shelf for the records you own and the ones you want.',
-        start_url: '/',
-        scope: '/',
+        // Leave start_url and scope unset so they follow Vite's base
+        // (`/` locally, `/Project-1/` on GitHub Pages).
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#1E1713',
