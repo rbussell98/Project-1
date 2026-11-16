@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1E1713" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sleeve" />
+    <title>Sleeve</title>
+    <link rel="icon" href="/Project-1/favicon.png" />
+    <link rel="apple-touch-icon" href="/Project-1/apple-touch-icon.png" />
+    <script>
+      try {
+        if (localStorage.getItem('sleeve.prefs') && JSON.parse(localStorage.getItem('sleeve.prefs')).theme === 'light') {
+          document.documentElement.dataset.theme = 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', '#F7EFE2');
+        }
+      } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="/Project-1/assets/index-RZfWNqqG.js"></script>
+    <link rel="stylesheet" crossorigin href="/Project-1/assets/index-BubDiiuG.css">
+  <link rel="manifest" href="/Project-1/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Project-1/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
