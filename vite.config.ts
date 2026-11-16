@@ -9,7 +9,9 @@ function devProxy(): Plugin {
     name: 'sleeve-dev-proxy',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        const url = req.url || '';
+        const base = server.config.base.replace(/\/$/, '');
+        let url = req.url || '';
+        if (base && url.startsWith(base + '/')) url = url.slice(base.length);
         let target = '';
         if (url.startsWith('/mb/')) target = 'https://musicbrainz.org' + url.slice(3);
         else if (url.startsWith('/caa/')) target = 'https://coverartarchive.org' + url.slice(4);
@@ -58,9 +60,31 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,mjs,css,html,ico,png,svg,woff2,json,bin,wasm,gz}'],
-        maximumFileSizeToCacheInBytes: 32 * 1024 * 1024,
+        // The shell precaches only the UI. OpenCV, Tesseract, the ONNX runtime,
+        // and the album index stay out of the first install and cache on use.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+        globIgnores: ['**/opencv/**', '**/tesseract/**', '**/ort/**', '**/index/**', '**/zxing/**'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            urlPattern: /\/(opencv|tesseract|ort|index|zxing)\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'sleeve-runtime',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/([^/]+\.)?(huggingface\.co|hf\.co)\//i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'sleeve-models',
+              expiration: { maxEntries: 24, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),

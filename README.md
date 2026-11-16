@@ -29,7 +29,7 @@ npm run preview -- --host
 
 Records, covers, the MusicBrainz cache, and embeddings of covers you save are in IndexedDB (`sleeve`). Settings can export and import a JSON backup, covers included as data URLs.
 
-The first time you add a photo, the app downloads `Xenova/clip-vit-base-patch32` (quantized, about 88 MB) and keeps it in the browser cache. A progress bar shows that download. If the model cannot load, Sleeve falls back to reading the sleeve and searching MusicBrainz. It never saves a record until you tap Save.
+The shelf is interactive before any image model is downloaded. After the first screen paints, Sleeve loads the vision model in the background (a small progress pill, then cached with the Cache API and the service worker). OpenCV and Tesseract load only when a photo needs them. If you add a record before the model is ready, Sleeve reads the barcode and the printed type and searches MusicBrainz. It never saves a record until you tap Save.
 
 ## Add by photo
 

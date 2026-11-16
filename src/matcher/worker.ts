@@ -16,6 +16,7 @@ import {
 import { caaBase, caaFetchBlob } from './net';
 import { goodLines, type OcrLine } from './ocrtext';
 import { dot, l2, openIndex, type PopularIndex } from './popindex';
+import { MODEL } from './model';
 import { blend, fastAccept, INDEX_K, isConfident } from './rank';
 import { textScore } from './textmatch';
 
@@ -69,44 +70,72 @@ type Processor = (img: unknown, opts: unknown) => Promise<unknown>;
 let model: EmbedModel | null = null;
 let proc: Processor | null = null;
 let clipFailed = false;
+let loading: Promise<void> | null = null;
+let progressFn: (progress: number, loaded: number, total: number) => void = () => {};
+const fileProgress = new Map<string, { loaded: number; total: number }>();
 
-async function loadEmbedder(onProgress: (n: number) => void): Promise<void> {
-  if (model && proc) return;
-  if (clipFailed) throw new Error('Image model unavailable');
-  try {
-    const loaded = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch32', {
-      dtype: 'q8',
-      progress_callback: (p: { status?: string; loaded?: number; total?: number }) => {
-        if (p?.total) onProgress((p.loaded || 0) / p.total);
-        else onProgress(0);
-      },
-    });
-    model = loaded as unknown as EmbedModel;
-    proc = (await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch32')) as unknown as Processor;
-  } catch (err) {
-    clipFailed = true;
-    model = null;
-    proc = null;
-    throw err instanceof Error ? err : new Error(String(err));
+function clipReady(): boolean {
+  return !!(model && proc);
+}
+
+function noteProgress(p: { status?: string; file?: string; loaded?: number; total?: number }) {
+  if (!p?.file) return;
+  if (p.status === 'progress' || p.status === 'done') {
+    const total = p.total || fileProgress.get(p.file)?.total || 0;
+    const loaded = p.status === 'done' ? total : p.loaded || 0;
+    if (total) fileProgress.set(p.file, { loaded, total });
   }
+  let loaded = 0;
+  let total = 0;
+  for (const row of fileProgress.values()) {
+    loaded += row.loaded;
+    total += row.total;
+  }
+  progressFn(total ? loaded / total : 0, loaded, total);
+}
+
+function loadEmbedder(onProgress?: (progress: number, loaded: number, total: number) => void): Promise<void> {
+  if (onProgress) progressFn = onProgress;
+  if (clipReady()) return Promise.resolve();
+  if (clipFailed) return Promise.reject(new Error('Image model unavailable'));
+  if (!loading) {
+    loading = (async () => {
+      try {
+        const loaded = await CLIPVisionModelWithProjection.from_pretrained(MODEL.id, {
+          dtype: MODEL.dtype,
+          progress_callback: noteProgress,
+        });
+        model = loaded as unknown as EmbedModel;
+        proc = (await AutoProcessor.from_pretrained(MODEL.id)) as unknown as Processor;
+      } catch (err) {
+        clipFailed = true;
+        loading = null;
+        model = null;
+        proc = null;
+        throw err instanceof Error ? err : new Error(String(err));
+      }
+    })();
+  }
+  return loading;
 }
 
 async function embedCanvas(canvas: OffscreenCanvas): Promise<Float32Array> {
   if (!model || !proc) throw new Error('Image model unavailable');
-  const square = new OffscreenCanvas(224, 224);
+  const size = MODEL.imageSize;
+  const square = new OffscreenCanvas(size, size);
   const ctx = square.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('Could not prepare the cover');
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(canvas, 0, 0, 224, 224);
-  const img = ctx.getImageData(0, 0, 224, 224);
-  const rgb = new Uint8ClampedArray(224 * 224 * 3);
+  ctx.drawImage(canvas, 0, 0, size, size);
+  const img = ctx.getImageData(0, 0, size, size);
+  const rgb = new Uint8ClampedArray(size * size * 3);
   for (let i = 0, j = 0; i < img.data.length; i += 4) {
     rgb[j++] = img.data[i];
     rgb[j++] = img.data[i + 1];
     rgb[j++] = img.data[i + 2];
   }
-  const raw = new RawImage(rgb, 224, 224, 3);
+  const raw = new RawImage(rgb, size, size, 3);
   const inputs = await proc(raw, { do_resize: false, do_center_crop: false });
   const { image_embeds } = await model(inputs);
   return l2(image_embeds.data);
@@ -273,15 +302,23 @@ async function buildJobs(cv: CvLike, src: OffscreenCanvas, only: string[]): Prom
   return jobs;
 }
 
-let indexPromise: Promise<PopularIndex> | null = null;
-function loadIndex(): Promise<PopularIndex> {
+let indexPromise: Promise<PopularIndex | null> | null = null;
+function loadIndex(): Promise<PopularIndex | null> {
   if (!indexPromise) {
     indexPromise = (async () => {
-      const [metaRes, binRes] = await Promise.all([
+      const [metaRes, binRes, specRes] = await Promise.all([
         fetch(publicUrl('/index/big-meta.json')),
         fetch(publicUrl('/index/big-int8.bin')),
+        fetch(publicUrl('/index/model.json')),
       ]);
       if (!metaRes.ok || !binRes.ok) throw new Error('The album index is missing');
+      if (specRes.ok) {
+        const spec = (await specRes.json()) as { id?: string };
+        if (spec.id && spec.id !== MODEL.id) {
+          console.warn('Index was built for a different model');
+          return null;
+        }
+      }
       const meta = (await metaRes.json()) as [string, string, string][];
       return openIndex(meta, await binRes.arrayBuffer());
     })().catch((err) => {
@@ -341,7 +378,7 @@ function enqueue(fn: () => Promise<void>) {
 }
 
 interface InMsg {
-  type: 'identify' | 'embed' | 'cancel';
+  type: 'identify' | 'embed' | 'cancel' | 'warmup';
   id?: string;
   buf?: ArrayBuffer;
   users?: EmbRow[];
@@ -375,23 +412,51 @@ async function identify(id: string, buf: ArrayBuffer, users: EmbRow[], gen: numb
   mark('crop');
   abort();
 
-  status('Matching the artwork');
-  let clip = true;
-  let photoEmbs: Float32Array[] = [];
-  try {
-    await loadEmbedder((n) => status('Downloading image model, one time only', n));
-    status('Matching the artwork');
-    const views: OffscreenCanvas[] = [];
-    if (cover) views.push(cover);
-    views.push(photo, cropFrac(photo, 0.08, 0.08, 0.84, 0.84), cropFrac(photo, 0.18, 0.18, 0.64, 0.64));
-    for (const view of views) {
+  const views = () => {
+    const list: OffscreenCanvas[] = [];
+    if (cover) list.push(cover);
+    list.push(photo, cropFrac(photo, 0.08, 0.08, 0.84, 0.84), cropFrac(photo, 0.18, 0.18, 0.64, 0.64));
+    return list;
+  };
+  async function embedViews(): Promise<Float32Array[]> {
+    const out: Float32Array[] = [];
+    for (const view of views()) {
       abort();
-      photoEmbs.push(await embedCanvas(view));
+      out.push(await embedCanvas(view));
     }
-  } catch (err) {
-    clip = false;
-    photoEmbs = [];
-    console.warn(err);
+    return out;
+  }
+
+  // The shell must stay usable with zero model bytes. Warmup owns the download.
+  // A photo taken before that finishes uses barcode + OCR and only embeds if the
+  // model arrives while that work is in flight.
+  if (!clipReady() && !clipFailed) {
+    void loadEmbedder((progress, loaded, total) => {
+      post({ type: 'model', id: 'warmup', phase: 'loading', progress, loaded, total });
+    }).then(
+      () => post({ type: 'model', id: 'warmup', phase: 'ready', progress: 1, loaded: 0, total: 0 }),
+      (err) =>
+        post({
+          type: 'model',
+          id: 'warmup',
+          phase: 'error',
+          progress: 0,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+    );
+  }
+
+  let clip = clipReady();
+  let photoEmbs: Float32Array[] = [];
+  if (clip) {
+    status('Matching the artwork');
+    try {
+      photoEmbs = await embedViews();
+    } catch (err) {
+      clip = false;
+      photoEmbs = [];
+      console.warn(err);
+    }
   }
   mark('photoEmbed');
   abort();
@@ -483,7 +548,18 @@ async function identify(id: string, buf: ArrayBuffer, users: EmbRow[], gen: numb
   mark('mbA');
   abort();
 
-  if (!clip) {
+  if (!photoEmbs.length && clipReady()) {
+    try {
+      status('Matching the artwork');
+      photoEmbs = await embedViews();
+      clip = true;
+    } catch (err) {
+      clip = false;
+      console.warn(err);
+    }
+  }
+
+  if (!clip || !photoEmbs.length) {
     const ranked: RankedAlbum[] = pool.rank().slice(0, 10).map((c) => ({
       rgid: c.rgid,
       artist: c.artist,
@@ -629,6 +705,23 @@ scope.onmessage = (ev) => {
   const msg = ev.data;
   if (!msg || msg.type === 'cancel') {
     generation++;
+    return;
+  }
+  if (msg.type === 'warmup') {
+    const id = msg.id || 'warmup';
+    void loadEmbedder((progress, loaded, total) => {
+      post({ type: 'model', id, phase: 'loading', progress, loaded, total });
+    }).then(
+      () => post({ type: 'model', id, phase: 'ready', progress: 1, loaded: 0, total: 0 }),
+      (err) =>
+        post({
+          type: 'model',
+          id,
+          phase: 'error',
+          progress: 0,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+    );
     return;
   }
   if (msg.type === 'embed' && msg.id && msg.buf) {

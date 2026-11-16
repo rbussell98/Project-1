@@ -2,7 +2,9 @@ import fs from 'node:fs';
 export function loadPopularIndex(name = process.env.SLEEVE_INDEX || 'big', exclude = new Set(), dir = new URL('../../public/index/', import.meta.url).pathname) {
   const meta = JSON.parse(fs.readFileSync(`${dir}${name}-meta.json`));
   const bin = fs.readFileSync(`${dir}${name}-int8.bin`);
-  const n = meta.length, d = 512; const vec = new Int8Array(bin.buffer, bin.byteOffset, n * d);
+  const n = meta.length;
+  const d = n ? Math.floor(bin.length / n) : 0;
+  const vec = new Int8Array(bin.buffer, bin.byteOffset, n * d);
   const by = new Map(meta.map((m, i) => [m[0], i]));
   return {
     n, meta, has: (id) => by.has(id) && !exclude.has(id), idxOf: (id) => by.get(id),

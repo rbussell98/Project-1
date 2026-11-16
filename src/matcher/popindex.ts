@@ -17,8 +17,8 @@ export interface PopularIndex {
 type MetaRow = [string, string, string];
 
 export function openIndex(meta: MetaRow[], bin: ArrayBuffer): PopularIndex {
-  const d = 512;
   const vecs = new Int8Array(bin);
+  const d = meta.length ? Math.floor(vecs.length / meta.length) : 0;
   const n = Math.min(meta.length, Math.floor(vecs.length / d));
   const by = new Map<string, number>();
   for (let i = 0; i < n; i++) by.set(meta[i][0], i);

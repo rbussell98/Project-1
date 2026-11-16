@@ -1,0 +1,92 @@
+{
+  "gallery": 316,
+  "queries": 36,
+  "note": "Phone-like JPEG crops against clean CAA thumbs plus random distractors. onnxBytes is the vision-encoder file. MobileCLIP int8/q8 exports separate covers poorly; fp16 does not. q4f16 of CLIP ViT-B/32 matches q8 accuracy at 53 MB but loses to MobileCLIP-S0 fp16 on size, speed, and harsh top-1.",
+  "models": [
+    {
+      "id": "Xenova/mobileclip_s0",
+      "dtype": "fp16",
+      "onnxBytes": 22876479,
+      "imageSize": 256,
+      "embedMsMedian": 13,
+      "mildTop1": "36/36",
+      "harshTop1": "36/36",
+      "medianSim": 0.955,
+      "medianMargin": 0.441,
+      "jackJohnsonSim": 0.943,
+      "chosen": true
+    },
+    {
+      "id": "Xenova/mobileclip_s1",
+      "dtype": "fp16",
+      "onnxBytes": 43211279,
+      "imageSize": 256,
+      "embedMsMedian": 22,
+      "mildTop1": "36/36",
+      "harshTop1": "36/36",
+      "medianSim": 0.956,
+      "medianMargin": 0.426,
+      "jackJohnsonSim": 0.946
+    },
+    {
+      "id": "Xenova/clip-vit-base-patch32",
+      "dtype": "q8",
+      "onnxBytes": 89117001,
+      "imageSize": 224,
+      "embedMsMedian": 15,
+      "mildTop1": "36/36",
+      "harshTop1": "34/36",
+      "medianSim": 0.921,
+      "medianMargin": 0.251,
+      "jackJohnsonSim": 0.948
+    },
+    {
+      "id": "Xenova/clip-vit-base-patch32",
+      "dtype": "q4f16",
+      "onnxBytes": 53267374,
+      "imageSize": 224,
+      "embedMsMedian": 22,
+      "mildTop1": "36/36",
+      "harshTop1": "34/36",
+      "medianSim": 0.919,
+      "medianMargin": 0.247,
+      "jackJohnsonSim": 0.954
+    },
+    {
+      "id": "Xenova/mobileclip_s0",
+      "dtype": "q8",
+      "onnxBytes": 11846843,
+      "imageSize": 256,
+      "embedMsMedian": 51,
+      "mildTop1": "10/36",
+      "harshTop1": "4/36",
+      "medianSim": 0.843,
+      "medianMargin": -0.048,
+      "jackJohnsonSim": 0.935
+    },
+    {
+      "id": "Xenova/mobileclip_s1",
+      "dtype": "q8",
+      "onnxBytes": 22357254,
+      "imageSize": 256,
+      "embedMsMedian": 98,
+      "mildTop1": "1/36",
+      "harshTop1": "0/36",
+      "medianSim": 0.624,
+      "medianMargin": -0.229,
+      "jackJohnsonSim": 0.611
+    },
+    {
+      "id": "Xenova/mobileclip_s2",
+      "dtype": "q8",
+      "onnxBytes": 36735889,
+      "imageSize": 256,
+      "embedMsMedian": 134,
+      "mildTop1": "0/36",
+      "harshTop1": "0/36",
+      "medianSim": 0.505,
+      "medianMargin": -0.235,
+      "jackJohnsonSim": 0.587
+    }
+  ]
+}

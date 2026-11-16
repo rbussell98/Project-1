@@ -1,9 +1,18 @@
 import { allEmbeddings, putEmbedding } from '../db';
 import type { IdentifyResult } from '../types';
+import type { ModelPhase } from './model';
 
 export interface StatusUpdate {
   step: string;
   progress: number | null;
+}
+
+export interface ModelSnapshot {
+  phase: ModelPhase;
+  progress: number;
+  loaded: number;
+  total: number;
+  error?: string;
 }
 
 interface Pending {
@@ -15,6 +24,29 @@ interface Pending {
 
 let worker: Worker | null = null;
 const pending = new Map<string, Pending>();
+let modelState: ModelSnapshot = { phase: 'idle', progress: 0, loaded: 0, total: 0 };
+const modelListeners = new Set<(s: ModelSnapshot) => void>();
+
+function setModel(partial: Partial<ModelSnapshot>) {
+  modelState = { ...modelState, ...partial };
+  for (const fn of modelListeners) fn(modelState);
+}
+
+export function getModelState(): ModelSnapshot {
+  return modelState;
+}
+
+export function subscribeModel(fn: (s: ModelSnapshot) => void): () => void {
+  modelListeners.add(fn);
+  fn(modelState);
+  return () => modelListeners.delete(fn);
+}
+
+export function warmupModel() {
+  if (modelState.phase === 'loading' || modelState.phase === 'ready') return;
+  setModel({ phase: 'loading', progress: 0, loaded: 0, total: 0, error: undefined });
+  getWorker().postMessage({ type: 'warmup', id: 'warmup' });
+}
 
 function rejectAll(err: Error) {
   for (const [id, job] of pending) {
@@ -30,12 +62,25 @@ function getWorker(): Worker {
       const msg = ev.data as {
         type: string;
         id: string;
+        phase?: ModelPhase;
         step?: string;
         progress?: number | null;
+        loaded?: number;
+        total?: number;
         result?: IdentifyResult;
         vec?: ArrayBuffer | null;
         message?: string;
       };
+      if (msg.type === 'model' && msg.phase) {
+        setModel({
+          phase: msg.phase,
+          progress: msg.progress ?? (msg.phase === 'ready' ? 1 : 0),
+          loaded: msg.loaded ?? modelState.loaded,
+          total: msg.total ?? modelState.total,
+          error: msg.message,
+        });
+        return;
+      }
       const job = pending.get(msg.id);
       if (!job) return;
       if (msg.type === 'status') {
